@@ -1,0 +1,31 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.sqlite3"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  username String @unique
+  authentication_string String
+  todo_lists TodoList[]
+}
+
+model TodoList {
+  id Int @id @default(autoincrement())
+  title String
+  owner User @relation(fields: [owner_id], references: [id])
+  owner_id Int
+  todos Todo[]
+}
+
+model Todo {
+  id Int @id @default(autoincrement())
+  description String
+  done Boolean
+  parent_list TodoList @relation(fields: [parent_id], references: [id])
+  parent_id Int
+}
