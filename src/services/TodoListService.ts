@@ -57,4 +57,17 @@ export class TodoListService extends PassiveService {
             }
         });
     }
+
+    async set_todo_value(todo_list_id: number, todo_id: number, new_value: boolean): Promise<boolean> {
+        let res = await this.client.todo.updateMany({
+            data: {
+                done: new_value
+            },
+            where: {
+                id: todo_id,
+                parent_id: todo_list_id
+            }
+        });
+        return res.count == 1;
+    }
 }

@@ -3,7 +3,7 @@ import { ServiceNetwork } from "koa-framework/ServiceNetwork";
 import { UserLoginError, UserRegistrationError, UserService } from "../services/UserService";
 import koa from "koa";
 import { SessionService } from "koa-framework/services/SessionService";
-import { IsNumberString, IsString } from "class-validator";
+import { IsBooleanString, IsNumberString, IsString } from "class-validator";
 import { AuthenticationService } from "koa-framework/services/AuthenticationService";
 import { User } from "@prisma/client";
 import { TodoListService } from "../services/TodoListService";
@@ -55,6 +55,29 @@ class CreateTodoListItemBody {
     description: string;
     constructor(description: string) {
         this.description = description;
+    }
+}
+
+class SetTodoParam {
+    @IsNumberString({no_symbols: true})
+    todo_list_id: string;
+
+    @IsNumberString({no_symbols: true})
+    todo_id: string;
+
+    constructor(todo_list_id: string, todo_id: string) {
+        this.todo_list_id = todo_list_id;
+        this.todo_id = todo_id;
+    }
+}
+
+
+class SetTodoBody {
+    @IsBooleanString()
+    value: "true" | "false";
+
+    constructor(value: "true" | "false") {
+        this.value = value;
     }
 }
 
@@ -207,7 +230,6 @@ export default class MainController extends Controller {
             return "redirecting to login";
         }
         let res = await this.todo_list_service.create_todo_list(user.id, ctx.request.vbody.title);
-        console.log(res);
         ctx.redirect(`/todo-list/${encodeURIComponent(res.id)}`);
         return "redirected to created todo list";
     }
@@ -244,7 +266,7 @@ export default class MainController extends Controller {
         <h1>${todo_list.title}</h1>
         <ul>
             ${todo_list.todos.map((todo) => {
-                return `<li><input class="todo-list-item" type="checkbox" data-id="${todo.id}" ${todo.done ? "value=\"checked\"" : ""}>${todo.description}</li>`
+                return `<li><input class="todo-list-item" type="checkbox" data-id="${todo.id}"${todo.done ? " checked" : ""}>${todo.description}</li>`
             }).join("\n")}
         </ul>
         <p>add todo item</p>
@@ -252,6 +274,26 @@ export default class MainController extends Controller {
             <input name="description" type="text"><br>
             <input type="submit" value="create todo item">
         </form>
+        <script>
+            let items = document.querySelectorAll(".todo-list-item");
+            for (let i = 0; i < items.length; i++) {
+                items[i].addEventListener("click", (ev) => {
+                    let raw_id = ev.target.getAttribute("data-id");
+                    let id = Number(raw_id);
+                    if (!Number.isInteger(id)) {
+                        console.log("Invalid id!");
+                        ev.preventDefault();
+                    }
+                    fetch("/todo-list/${encodeURIComponent(todo_list.id.toString())}/" + id.toString(), {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: "value=" + encodeURIComponent(String(ev.target.checked))
+                    });
+                })
+            }        
+        </script>
     </body>
 </html>`;
     }
@@ -277,5 +319,36 @@ export default class MainController extends Controller {
         await this.todo_list_service.create_todo_list_item(todo_list_id, ctx.request.vbody.description);
         ctx.redirect(`/todo-list/${encodeURIComponent(todo_list_id.toString())}`);
         return "redirecting to todo list";
+    }
+
+    @Post("/todo-list/:todo_list_id/:todo_id", [SetTodoParam, null, SetTodoBody])
+    async todo_list_item_set(ctx: ValidatedContext<SetTodoParam, null, SetTodoBody>) {
+        let user = await this.authentication_service.get_user(ctx);
+        if (user == null) {
+            let session = this.session_service.get_session(ctx);
+            session.set("last_error", "you need to be logged in to access this resource");
+            ctx.redirect("/login");
+            return "redirecting to login";
+        }
+
+        let todo_list_id = Number(ctx.request.vparam.todo_list_id);
+
+        let todo_list = await this.todo_list_service.get_user_todo_list(todo_list_id, user.id);
+
+        if (todo_list == null) {
+            ctx.status = 404;
+            return "the request resource does not exist";
+        }
+
+        let todo_id = Number(ctx.request.vparam.todo_id);
+
+        let res = await this.todo_list_service.set_todo_value(todo_list_id, todo_id, ctx.request.vbody.value == "true");
+
+        if (!res) {
+            ctx.status = 404;
+            return "the request resource does not exist";
+        }
+
+        return "ok";
     }
 }

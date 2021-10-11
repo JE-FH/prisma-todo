@@ -20,7 +20,7 @@
     "class-validator": "^0.13.1",
     "koa": "^2.13.3",
     "koa-bodyparser": "^4.3.0",
-    "koa-framework": "file:..\\koa-framework",
+    "koa-framework": "file:../koa-framework",
     "koa-mount": "^4.0.0",
     "source-map-support": "^0.5.20"
   }
