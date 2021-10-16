@@ -97,7 +97,7 @@ export default class MainController extends Controller {
 
     @Get("/register")
     async register_get(ctx: koa.Context) {
-        let session = this.session_service.get_session(ctx);
+        let session = await this.session_service.get_session(ctx);
         let last_error = session.get("last_error");
         session.delete("last_error");
         return `
@@ -122,7 +122,7 @@ export default class MainController extends Controller {
     async register_post(ctx: ValidatedContext<null, null, RegisterRequest>) {
         let res = await this.user_service.register_user(ctx.request.vbody.username, ctx.request.vbody.password);
         if (typeof(res) != "object") {
-            let session = this.session_service.get_session(ctx);
+            let session = await this.session_service.get_session(ctx);
             switch (res) {
                 case UserRegistrationError.DUPLICATE_USERNAME:
                     session.set("last_error", "Username is taken")
@@ -142,7 +142,8 @@ export default class MainController extends Controller {
 
     @Get("/login")
     async login_get(ctx: koa.Context) {
-        let session = this.session_service.get_session(ctx);
+        console.log(this.session_service);
+        let session = await this.session_service.get_session(ctx);
         let last_error = session.get("last_error");
         session.delete("last_error");
         return `
@@ -167,7 +168,7 @@ export default class MainController extends Controller {
     async login_post(ctx: ValidatedContext<null, null, LoginRequest>) {
         let res = await this.user_service.login(ctx, ctx.request.vbody.username, ctx.request.vbody.password);
     
-        let session = this.session_service.get_session(ctx);
+        let session = await this.session_service.get_session(ctx);
         if (typeof(res) != "object") {
             switch (res) {
                 case UserLoginError.WRONG_USERNAME:
@@ -194,7 +195,8 @@ export default class MainController extends Controller {
     async todo_lists(ctx: koa.Context) {
         let user = await this.authentication_service.get_user(ctx);
         if (user == null) {
-            let session = this.session_service.get_session(ctx);
+            let session = await this.session_service.get_session(ctx);
+            console.log(session);
             session.set("last_error", "you need to be logged in to access this resource");
             ctx.redirect("/login");
             return "redirecting to login";
@@ -224,7 +226,7 @@ export default class MainController extends Controller {
     async todo_list_put(ctx: ValidatedContext<null, null, CreateTodoListRequest>) {
         let user = await this.authentication_service.get_user(ctx);
         if (user == null) {
-            let session = this.session_service.get_session(ctx);
+            let session = await this.session_service.get_session(ctx);
             session.set("last_error", "you need to be logged in to access this resource");
             ctx.redirect("/login");
             return "redirecting to login";
@@ -238,7 +240,7 @@ export default class MainController extends Controller {
     async todo_list(ctx: ValidatedContext<GetTodoListParam, null, null>) {
         let user = await this.authentication_service.get_user(ctx);
         if (user == null) {
-            let session = this.session_service.get_session(ctx);
+            let session = await this.session_service.get_session(ctx);
             session.set("last_error", "you need to be logged in to access this resource");
             ctx.redirect("/login");
             return "redirecting to login";
@@ -302,7 +304,7 @@ export default class MainController extends Controller {
     async todo_list_item_add(ctx: ValidatedContext<GetTodoListParam, null, CreateTodoListItemBody>) {
         let user = await this.authentication_service.get_user(ctx);
         if (user == null) {
-            let session = this.session_service.get_session(ctx);
+            let session = await this.session_service.get_session(ctx);
             session.set("last_error", "you need to be logged in to access this resource");
             ctx.redirect("/login");
             return "redirecting to login";
@@ -325,7 +327,7 @@ export default class MainController extends Controller {
     async todo_list_item_set(ctx: ValidatedContext<SetTodoParam, null, SetTodoBody>) {
         let user = await this.authentication_service.get_user(ctx);
         if (user == null) {
-            let session = this.session_service.get_session(ctx);
+            let session = await this.session_service.get_session(ctx);
             session.set("last_error", "you need to be logged in to access this resource");
             ctx.redirect("/login");
             return "redirecting to login";

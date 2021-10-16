@@ -54,7 +54,7 @@ export class UserService extends PassiveService {
         }
 
         try {
-            this.authentication_service.authenticate(ctx, user.id, user.authentication_string, password);
+            await this.authentication_service.authenticate(ctx, user.id, user.authentication_string, password);
         } catch (e) {
             if (e instanceof WrongCredentialsError) {
                 return UserLoginError.WRONG_PASSWORD;
